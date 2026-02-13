@@ -30,9 +30,16 @@ impl Config {
     /// Load configuration from config file and environment variables
     /// Environment variables take precedence over config file values
     pub fn load() -> Result<Self> {
-        // Try to load config file
-        let config_dir = dirs::config_dir()
-            .context("Failed to get config directory")?
+        // Try to load config file - use XDG path (~/.config) on all platforms
+        let config_dir = std::env::var("XDG_CONFIG_HOME")
+            .ok()
+            .filter(|p| !p.is_empty())
+            .map(|p| std::path::PathBuf::from(p))
+            .unwrap_or_else(|| {
+                dirs::home_dir()
+                    .expect("Failed to get home directory")
+                    .join(".config")
+            })
             .join("glm-usage-monitor");
 
         let config_path = config_dir.join(CONFIG_FILE_NAME);
