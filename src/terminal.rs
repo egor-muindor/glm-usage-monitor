@@ -44,10 +44,17 @@ async fn run_app(
     tick_rate: Duration,
 ) -> Result<()> {
     let mut last_tick = std::time::Instant::now();
+    let mut first_run = true;
 
     loop {
         // Render UI
         terminal.draw(|frame| render(frame, app))?;
+
+        // Start initial data fetch immediately after first render
+        if first_run {
+            app.refresh_data().await;
+            first_run = false;
+        }
 
         // Calculate timeout for event polling
         let timeout = tick_rate.saturating_sub(last_tick.elapsed());

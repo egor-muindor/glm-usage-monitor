@@ -10,6 +10,8 @@ Realtime GLM Coding Plan usage monitor with a beautiful Terminal UI built with R
 - Configuration via environment variables or config file
 - Auto-refresh with configurable interval
 - Keyboard shortcuts for manual refresh and quit
+- **Status bar mode** (`--status`) for integration with tmux, i3status, Claude Code, etc.
+- Smart caching (5-min TTL) to avoid excessive API calls in status mode
 
 ## Screenshots
 
@@ -98,6 +100,11 @@ Create a config file at `~/.config/glm-usage-monitor/config.toml`:
 [api]
 # base_url is optional, defaults to "https://api.z.ai/api/anthropic"
 auth_token = "your-token-here"
+
+[status]
+# Show TIME_LIMIT when usage >= threshold% (default: 50)
+# 0 = always show, 100 = never show
+time_threshold = 50
 ```
 
 **Note:** Environment variables take precedence over config file values.
@@ -118,6 +125,9 @@ glm-usage-monitor -t 30  # 30 second timeout
 
 # Combined
 glm-usage-monitor -r 60 -t 30
+
+# Status bar mode (one-line output for scripts/status bars)
+glm-usage-monitor --status
 ```
 
 ### Keyboard Shortcuts
@@ -126,6 +136,41 @@ glm-usage-monitor -r 60 -t 30
 |-----|--------|
 | `r` | Refresh data now |
 | `q` | Quit |
+
+## Status Bar Mode
+
+Use `--status` for compact one-line output, perfect for integration with status bars:
+
+```bash
+glm-usage-monitor --status
+# Output: 📊 50%
+# Or when time limit exceeds threshold: ⏱ 80% | 📊 50%
+```
+
+The status mode uses a 5-minute cache to avoid excessive API calls.
+
+### Claude Code Integration
+
+Add to your Claude Code settings (`~/.claude/settings.json`):
+
+```json
+{
+  "statusLine": {
+    "type": "command",
+    "command": "glm-usage-monitor --status"
+  }
+}
+```
+
+Now you'll see your GLM quota usage directly in Claude Code's status line!
+
+### tmux Integration
+
+Add to your `~/.tmux.conf`:
+
+```bash
+set -g status-right "#(glm-usage-monitor --status) | %H:%M"
+```
 
 ## Development
 
@@ -157,6 +202,7 @@ src/
 ├── models.rs    # Data models and formatting
 ├── api.rs       # HTTP client for GLM API
 ├── app.rs       # Application state and logic
+├── cache.rs     # Caching layer for status mode
 ├── ui.rs        # TUI rendering with ratatui
 └── terminal.rs  # Terminal management and event loop
 ```

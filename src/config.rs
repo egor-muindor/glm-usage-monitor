@@ -10,6 +10,21 @@ const CONFIG_FILE_NAME: &str = "config.toml";
 pub struct ConfigFile {
     #[serde(default)]
     pub api: ApiSection,
+
+    #[serde(default)]
+    pub status: StatusSection,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct StatusSection {
+    /// Show TIME_LIMIT when usage >= threshold%
+    /// 0 = always show, 100 = never show
+    #[serde(default = "default_time_threshold")]
+    pub time_threshold: u8,
+}
+
+fn default_time_threshold() -> u8 {
+    50
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -24,6 +39,7 @@ pub struct Config {
     pub auth_token: String,
     pub refresh_sec: u64,
     pub http_timeout_sec: u64,
+    pub time_threshold: u8,
 }
 
 impl Config {
@@ -80,11 +96,18 @@ impl Config {
             .and_then(|s| s.parse().ok())
             .unwrap_or(20); // default 20 seconds
 
+        // Get time_threshold from config file (no env override for this)
+        let time_threshold = file_config
+            .as_ref()
+            .map(|c| c.status.time_threshold)
+            .unwrap_or(default_time_threshold());
+
         Ok(Config {
             base_url,
             auth_token,
             refresh_sec,
             http_timeout_sec,
+            time_threshold,
         })
     }
 
@@ -169,6 +192,7 @@ mod tests {
             auth_token: "test".to_string(),
             refresh_sec: 300,
             http_timeout_sec: 20,
+            time_threshold: 50,
         };
         assert_eq!(config.platform(), Platform::Zai);
 
@@ -177,6 +201,7 @@ mod tests {
             auth_token: "test".to_string(),
             refresh_sec: 300,
             http_timeout_sec: 20,
+            time_threshold: 50,
         };
         assert_eq!(config.platform(), Platform::Zhipu);
     }

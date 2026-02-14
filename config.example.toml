@@ -8,3 +8,9 @@
 
 # Authentication token for the API (required)
 auth_token = "your-token-here"
+
+[status]
+# Show TIME_LIMIT in status bar when usage >= threshold%
+# 0 = always show time limit, 100 = never show
+# Default: 50
+time_threshold = 50

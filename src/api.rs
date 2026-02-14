@@ -81,7 +81,7 @@ mod tests {
     // Note: These tests require a real API endpoint and token
     // They are marked as ignore by default
 
-    #[test]
+    #[tokio::test]
     #[ignore]
     async fn test_fetch_quota_limit() {
         // This test requires valid credentials
@@ -91,7 +91,13 @@ mod tests {
             .unwrap_or_else(|_| "https://api.z.ai/api/anthropic".to_string());
 
         let parsed = url::Url::parse(&base_url).unwrap();
-        let domain = format!("{}://{}", parsed.scheme(), parsed.netloc());
+        let host = parsed.host_str().unwrap_or("unknown");
+        let port = parsed.port();
+        let domain = if let Some(port) = port {
+            format!("{}://{}:{}", parsed.scheme(), host, port)
+        } else {
+            format!("{}://{}", parsed.scheme(), host)
+        };
 
         let endpoints = Endpoints {
             quota_limit_url: format!("{}/api/monitor/usage/quota/limit", domain),

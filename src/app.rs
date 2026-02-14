@@ -26,10 +26,16 @@ impl App {
         let platform = config.platform();
         let refresh_interval = std::time::Duration::from_secs(config.refresh_sec);
 
+        // Load cached data if available
+        let mut state = AppState::new(refresh_interval);
+        if let Some(entry) = crate::cache::read_cache() {
+            state.update_quota(entry.data);
+        }
+
         Ok(Self {
             config,
             api_client,
-            state: AppState::new(refresh_interval),
+            state,
             platform,
         })
     }
@@ -58,6 +64,7 @@ impl App {
     pub async fn refresh_data(&mut self) {
         match self.api_client.fetch_quota_limit().await {
             Ok(data) => {
+                crate::cache::write_cache(&data);
                 self.state.update_quota(data);
             }
             Err(e) => {
@@ -96,6 +103,7 @@ mod tests {
             auth_token: "test-token".to_string(),
             refresh_sec: 300,
             http_timeout_sec: 20,
+            time_threshold: 50,
         };
 
         let app = App::new(config);

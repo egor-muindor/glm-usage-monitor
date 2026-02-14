@@ -199,6 +199,39 @@ impl Format {
     }
 }
 
+/// Format status line for Claude Code status bar
+/// Format: "📊 1%" or "⏱ 52% | 📊 1%"
+pub fn format_status_line(data: &QuotaLimitResponse, time_threshold: u8) -> String {
+    let mut token_pct: Option<f64> = None;
+    let mut time_pct: Option<f64> = None;
+
+    for limit in &data.limits {
+        match limit.limit_type.as_str() {
+            "TOKENS" | "TOKENS_LIMIT" | "TOKEN" => {
+                token_pct = limit.percentage;
+            }
+            "TIME" | "TIME_LIMIT" => {
+                time_pct = limit.percentage;
+            }
+            _ => {}
+        }
+    }
+
+    let token_str = match token_pct {
+        Some(pct) => format!("\u{1F4CA} {:.0}%", pct.clamp(0.0, 100.0)),
+        None => "\u{1F4CA} N/A".to_string(),
+    };
+
+    // Show time limit only if threshold is met
+    if let Some(time_p) = time_pct {
+        if time_p >= time_threshold as f64 {
+            return format!("\u{23F1} {:.0}% | {}", time_p.clamp(0.0, 100.0), token_str);
+        }
+    }
+
+    token_str
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -211,8 +244,8 @@ mod tests {
 
     #[test]
     fn test_progress_bar() {
-        assert_eq!(Format::progress_bar(Some(50.0), 10), "[██████████] 50%");
-        assert_eq!(Format::progress_bar(Some(0.0), 10), "[] 0%");
+        assert_eq!(Format::progress_bar(Some(50.0), 10), "[█████░░░░░] 50%");
+        assert_eq!(Format::progress_bar(Some(0.0), 10), "[░░░░░░░░░░] 0%");
         assert_eq!(Format::progress_bar(Some(100.0), 10), "[██████████] 100%");
     }
 }
